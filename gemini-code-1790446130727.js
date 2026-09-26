@@ -1,4 +1,4 @@
-// 1. Import Firebase SDK ผ่าน CDN (ใช้งานในบราวเซอร์ได้ทันที ไม่ต้องติดตั้ง npm)
+// 1. Import Firebase Modules ผ่าน CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
   getFirestore, 
@@ -8,7 +8,7 @@ import {
   onSnapshot 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 2. ใส่ Config ของคุณ
+// 2. Firebase Configuration ของโปรเจกต์คุณ
 const firebaseConfig = {
   apiKey: "AIzaSyBOpSPzgknAzC7t656Af9fjVb0tYlq2tAc",
   authDomain: "photobooth-db-38df7.firebaseapp.com",
@@ -19,58 +19,60 @@ const firebaseConfig = {
   measurementId: "G-0G291KXJHS"
 };
 
-// 3. เริ่มต้นใช้งาน Firebase & Firestore
+// 3. Initialize Firebase & Firestore
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// อ้างอิงไปยังเอกสารคูปองใน Firestore
-const couponDocRef = doc(db, "coupons", "coupon_data");
+// สร้าง Reference สำหรับเก็บข้อมูลตั้งค่ากลาง (คูปอง / โควตา)
+const settingsDocRef = doc(db, "app_settings", "photobooth_config");
 
-// -------------------------------------------------------------
-// ระบบดึงข้อมูลคูปองแบบ Real-time (เปิดเครื่องไหน ข้อมูลก็อัปเดตตรงกันทันที)
-// -------------------------------------------------------------
-function listenToCoupons(callback) {
-  onSnapshot(couponDocRef, (docSnap) => {
+// -----------------------------------------------------------------
+// 4. ระบบฟังข้อมูล Real-time (เปิดเครื่องไหนก็เห็นข้อมูลตรงกันทันที)
+// -----------------------------------------------------------------
+function listenToCloudSettings(onUpdateCallback) {
+  onSnapshot(settingsDocRef, (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
-      console.log("อัปเดตข้อมูลคูปองปัจจุบัน:", data);
-      if (callback) callback(data);
+      console.log("ดึงข้อมูลล่าสุดจาก Cloud:", data);
+      
+      // นำข้อมูลที่ได้ไปอัปเดตหน้าจอ UI
+      if (onUpdateCallback) onUpdateCallback(data);
     } else {
-      // หากยังไม่มีข้อมูลใน Database ให้สร้างข้อมูลเริ่มต้น
-      initDefaultCoupons();
+      // หากเปิดใช้งานครั้งแรกและยังไม่มีข้อมูลใน Cloud ให้ตั้งค่าเริ่มต้น
+      initCloudSettings();
     }
   });
 }
 
-// สร้างข้อมูลคูปองเริ่มต้น (กรณีเปิดใช้งานครั้งแรก)
-async function initDefaultCoupons() {
-  const defaultData = {
-    quota: 10, // โควตาเริ่มต้น
-    codes: ["037CAFE01", "037CAFE02", "037CAFE03", "037CAFE04", "037CAFE05", 
-            "037CAFE06", "037CAFE07", "037CAFE08", "037CAFE09", "037CAFE10"]
+// สร้างค่าเริ่มต้นใน Cloud
+async function initCloudSettings() {
+  const defaultConfig = {
+    quota: 10,
+    coupons: ["037CAFE01", "037CAFE02", "037CAFE03"],
+    price: 40
   };
-  await setDoc(couponDocRef, defaultData);
+  await setDoc(settingsDocRef, defaultConfig);
 }
 
-// -------------------------------------------------------------
-// ฟังก์ชันบันทึก / แก้ไขโควตาและคูปองจากหน้าเว็บ
-// -------------------------------------------------------------
-async function updateCouponData(newQuota, newCodesArray) {
+// -----------------------------------------------------------------
+// 5. ฟังก์ชันบันทึกข้อมูลขึ้น Cloud (เมื่อกดตั้งค่าจากเครื่องใดก็ตาม)
+// -----------------------------------------------------------------
+async function saveSettingsToCloud(newSettings) {
   try {
-    await setDoc(couponDocRef, {
-      quota: Number(newQuota),
-      codes: newCodesArray
-    }, { merge: true });
-    alert("บันทึกข้อมูลเรียบร้อยแล้ว! ทุกเครื่องจะอัปเดตตามทันที");
+    await setDoc(settingsDocRef, newSettings, { merge: true });
+    alert("บันทึกการตั้งค่าลง Cloud เรียบร้อยแล้ว! ทุกเครื่องจะอัปเดตตามทันที");
   } catch (error) {
-    console.error("เกิดข้อผิดพลาดในการบันทึก:", error);
-    alert("ไม่สามารถบันทึกข้อมูลได้");
+    console.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล:", error);
+    alert("บันทึกข้อมูลไม่สำเร็จ โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
   }
 }
 
-// เรียกใช้งานติดตามข้อมูลคูปองทันทีเมื่อโหลดหน้าเว็บ
-listenToCoupons((couponData) => {
-  // นำ couponData.quota และ couponData.codes ไปแสดงผลบนหน้า UI ของคุณได้เลย
-  // ตัวอย่างเช่น:
-  // document.getElementById("quotaInput").value = couponData.quota;
+// -----------------------------------------------------------------
+// ตัวอย่างการเรียกใช้งานในระบบของคุณ
+// -----------------------------------------------------------------
+// เริ่มติดตามข้อมูลจาก Cloud ทันทีที่โหลดหน้าเว็บ
+listenToCloudSettings((config) => {
+  // นำค่าที่ดึงได้ไปใส่ใน Input หรือแสดงบนหน้าเว็บ
+  // เช่น:
+  // document.getElementById("quotaDisplay").textContent = config.quota;
 });
