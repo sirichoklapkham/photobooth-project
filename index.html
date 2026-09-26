@@ -57,6 +57,35 @@
         }
         #customerCanvasContainer { touch-action: none; }
     </style>
+
+    <!-- Firebase SDK Setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            onSnapshot 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBOpSPzgknAzC7t656Af9fjVb0tYlq2tAc",
+            authDomain: "photobooth-db-38df7.firebaseapp.com",
+            projectId: "photobooth-db-38df7",
+            storageBucket: "photobooth-db-38df7.firebasestorage.app",
+            messagingSenderId: "114136029221",
+            appId: "1:114136029221:web:4349151eff03fce03287cc",
+            measurementId: "G-0G291KXJHS"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.settingsDocRef = doc(db, "app_settings", "photobooth_config");
+        window.setDoc = setDoc;
+        window.onSnapshot = onSnapshot;
+    </script>
 </head>
 <body class="text-slate-700 antialiased selection:bg-sky-200">
 
@@ -501,8 +530,8 @@
 
         let googleSheetScriptUrl = localStorage.getItem('037_gsheet_url') || DEFAULT_GSHEET_URL;
 
-        // Pricing Configuration
-        let pricePerSheet = parseFloat(localStorage.getItem('037_price_per_sheet')) || 120;
+        // Pricing Configuration Default
+        let pricePerSheet = 120;
         
         // Default Coupons Array with customizable limits (Quota)
         const defaultCoupons = [
@@ -518,11 +547,7 @@
             { code: 'LUCKY037', discount: 120, limit: 1, usedCount: 0 }
         ];
 
-        let activeCoupons = JSON.parse(localStorage.getItem('037_coupons_single_use'));
-        if (!activeCoupons || !Array.isArray(activeCoupons) || activeCoupons.length !== 10) {
-            activeCoupons = defaultCoupons;
-            localStorage.setItem('037_coupons_single_use', JSON.stringify(activeCoupons));
-        }
+        let activeCoupons = defaultCoupons;
 
         let appliedCoupon = null;
         let slipBase64 = null;
@@ -539,6 +564,49 @@
         let panStartX = 0, panStartY = 0;
         let initialTouchDistance = 0, initialTouchAngle = 0;
         let initialPhotoScale = 1, initialPhotoRotation = 0;
+
+        // Real-time Cloud Settings Listener (Firebase)
+        function initCloudSettingsListener() {
+            if (!window.settingsDocRef) {
+                setTimeout(initCloudSettingsListener, 300);
+                return;
+            }
+
+            window.onSnapshot(window.settingsDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.pricePerSheet !== undefined) pricePerSheet = data.pricePerSheet;
+                    if (data.activeCoupons !== undefined && Array.isArray(data.activeCoupons)) {
+                        activeCoupons = data.activeCoupons;
+                    }
+
+                    if (currentMode === 'staff') {
+                        renderSingleUseCouponList();
+                        const priceInput = document.getElementById('staffPricePerSheet');
+                        if (priceInput) priceInput.value = pricePerSheet;
+                    }
+                    calculatePrice();
+                } else {
+                    // Initialize document if not exists
+                    window.setDoc(window.settingsDocRef, {
+                        pricePerSheet: pricePerSheet,
+                        activeCoupons: activeCoupons
+                    }, { merge: true });
+                }
+            }, (err) => {
+                console.error("Firebase Sync Error:", err);
+            });
+        }
+
+        async function updateCloudSettings(dataObj) {
+            if (window.settingsDocRef) {
+                try {
+                    await window.setDoc(window.settingsDocRef, dataObj, { merge: true });
+                } catch (err) {
+                    console.error("Error updating settings to Cloud:", err);
+                }
+            }
+        }
 
         function getGoogleDriveDirectLink(urlOrId) {
             if (!urlOrId) return '';
@@ -821,15 +889,16 @@
         }
 
         // Staff Price & Coupon Functions
-        function savePrintPrice() {
+        async function savePrintPrice() {
             const price = parseFloat(document.getElementById('staffPricePerSheet').value);
             if (!price || price <= 0) {
                 alert('กรุณากรอกราคาให้ถูกต้อง');
                 return;
             }
             pricePerSheet = price;
-            localStorage.setItem('037_price_per_sheet', pricePerSheet);
-            alert('บันทึกราคาสั่งพิมพ์สำเร็จ!');
+            
+            await updateCloudSettings({ pricePerSheet: pricePerSheet });
+            alert('บันทึกราคาสั่งพิมพ์ลง Cloud สำเร็จ!');
             calculatePrice();
         }
 
@@ -866,7 +935,7 @@
         }
 
         // Save Coupons Setup with Limit/Quota
-        function saveSingleUseCoupons() {
+        async function saveSingleUseCoupons() {
             for (let i = 0; i < 10; i++) {
                 const codeVal = document.getElementById(`couponCode_${i}`).value.trim().toUpperCase();
                 const discVal = parseFloat(document.getElementById(`couponDisc_${i}`).value) || 0;
@@ -881,13 +950,13 @@
                 }
             }
 
-            localStorage.setItem('037_coupons_single_use', JSON.stringify(activeCoupons));
+            await updateCloudSettings({ activeCoupons: activeCoupons });
             renderSingleUseCouponList();
-            alert('บันทึกการตั้งค่าโค้ดส่วนลดและจำนวนสิทธิ์ เรียบร้อยแล้ว!');
+            alert('บันทึกการตั้งค่าโค้ดส่วนลดและจำนวนสิทธิ์ลง Cloud เรียบร้อยแล้ว!');
         }
 
         // Reset ONLY Coupons that ran out of quota
-        function resetUsedCouponsOnly() {
+        async function resetUsedCouponsOnly() {
             let resetCount = 0;
             activeCoupons.forEach(c => {
                 if (c.usedCount > 0) {
@@ -901,7 +970,7 @@
                 return;
             }
 
-            localStorage.setItem('037_coupons_single_use', JSON.stringify(activeCoupons));
+            await updateCloudSettings({ activeCoupons: activeCoupons });
             renderSingleUseCouponList();
             alert(`รีเซ็ทจำนวนสิทธิ์สำเร็จ! (คืนสิทธิ์ให้ทั้งหมด ${resetCount} โค้ดเรียบร้อยแล้ว)`);
         }
@@ -1568,7 +1637,7 @@
             }
         }
 
-        function submitCustomerOrder() {
+        async function submitCustomerOrder() {
             const name = document.getElementById('custNickname').value.trim();
             const phone = document.getElementById('custPhone').value.trim();
             const quantity = parseInt(document.getElementById('custQuantity').value) || 1;
@@ -1583,10 +1652,10 @@
                 return;
             }
 
-            // หักสิทธิ์ใช้โค้ด 1 ครั้งเมื่อทำรายการสั่งซื้อสำเร็จ
+            // หักสิทธิ์ใช้โค้ด 1 ครั้งเมื่อทำรายการสั่งซื้อสำเร็จ และอัปเดตลง Cloud
             if (appliedCoupon) {
                 appliedCoupon.usedCount = (appliedCoupon.usedCount || 0) + 1;
-                localStorage.setItem('037_coupons_single_use', JSON.stringify(activeCoupons));
+                await updateCloudSettings({ activeCoupons: activeCoupons });
             }
 
             const currentTpl = templates[activeTemplateIndex];
@@ -1651,6 +1720,7 @@
 
         window.onload = function() {
             initPresets();
+            initCloudSettingsListener();
         };
     </script>
 </body>
