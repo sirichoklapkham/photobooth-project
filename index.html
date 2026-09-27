@@ -83,6 +83,7 @@
 
         window.db = db;
         window.settingsDocRef = doc(db, "app_settings", "photobooth_config");
+        window.templatesDocRef = doc(db, "app_settings", "photobooth_templates");
         window.setDoc = setDoc;
         window.onSnapshot = onSnapshot;
     </script>
@@ -132,27 +133,17 @@
             
             <div class="lg:col-span-5 space-y-4">
                 
-                <!-- Staff Pricing & Coupon Management Panel -->
+                <!-- Staff Coupon Management Panel -->
                 <div class="bg-white rounded-3xl p-5 border border-amber-200 bg-amber-50/20 pastel-shadow space-y-4">
                     <div class="flex items-center justify-between pb-2 border-b border-amber-200">
                         <h2 class="text-xs font-bold text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-tags text-amber-500"></i>
-                            ตั้งค่าราคาและโค้ดส่วนลด (Pricing & Promo Codes)
+                            ตั้งค่าโค้ดส่วนลด (Promo Codes)
                         </h2>
                     </div>
 
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">ราคาสั่งพิมพ์ต่อใบ (บาท)</label>
-                        <div class="flex gap-2">
-                            <input type="number" id="staffPricePerSheet" class="w-full text-xs px-3 py-1.5 rounded-xl border border-sky-200 font-bold text-slate-800">
-                            <button onclick="savePrintPrice()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shrink-0">
-                                บันทึกราคา
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- Coupons Management with Quota -->
-                    <div class="space-y-2 pt-2 border-t border-amber-100">
+                    <div class="space-y-2 pt-2">
                         <div class="flex justify-between items-center">
                             <label class="block text-[11px] font-semibold text-slate-600">จัดการโค้ดส่วนลดและจำนวนสิทธิ์ (Quota)</label>
                             <button onclick="resetUsedCouponsOnly()" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-bold shadow-sm transition flex items-center gap-1">
@@ -189,7 +180,7 @@
                     <div class="flex items-center justify-between pb-3 border-b border-sky-100 mb-4">
                         <h2 class="text-xs font-bold text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-wand-magic-sparkles text-sky-500"></i>
-                            อัปโหลดกรอบรูป (ตรวจจับช่องโปร่งใสอัตโนมัติ)
+                            ตั้งค่าเทมแพลตปัจจุบัน
                         </h2>
                         <span class="text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-bold">2400x3600px Base</span>
                     </div>
@@ -200,8 +191,12 @@
                                 <label class="block text-[11px] font-semibold text-slate-600 mb-1">ชื่อกรอบรูป</label>
                                 <input type="text" id="staffTemplateName" oninput="updateCurrentTemplateName()" class="w-full text-xs px-3 py-1.5 rounded-xl border border-sky-200">
                             </div>
+                            <div class="w-28">
+                                <label class="block text-[11px] font-semibold text-slate-600 mb-1">ราคาขาย (บาท)</label>
+                                <input type="number" id="staffTemplatePrice" oninput="updateCurrentTemplatePrice()" class="w-full text-xs px-3 py-1.5 rounded-xl border border-sky-200 font-bold text-sky-600">
+                            </div>
                             <button onclick="deleteCurrentTemplate()" class="self-end px-3 py-1.5 bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 rounded-xl text-xs font-medium transition">
-                                <i class="fa-solid fa-trash"></i> ลบกรอบนี้
+                                <i class="fa-solid fa-trash"></i> ลบ
                             </button>
                         </div>
 
@@ -278,7 +273,7 @@
 
                     <div class="pt-3">
                         <button onclick="saveStaffTemplate()" class="w-full py-2.5 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white font-semibold rounded-2xl shadow-md transition flex items-center justify-center gap-2 text-xs">
-                            <i class="fa-solid fa-floppy-disk"></i> บันทึกการเปลี่ยนแปลง
+                            <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกเทมแพลตทั้งหมดลง Cloud
                         </button>
                     </div>
                 </div>
@@ -530,9 +525,6 @@
 
         let googleSheetScriptUrl = localStorage.getItem('037_gsheet_url') || DEFAULT_GSHEET_URL;
 
-        // Pricing Configuration Default
-        let pricePerSheet = 120;
-        
         // Default Coupons Array with customizable limits (Quota)
         const defaultCoupons = [
             { code: 'FREE10', discount: 10, limit: 10, usedCount: 0 },
@@ -565,36 +557,49 @@
         let initialTouchDistance = 0, initialTouchAngle = 0;
         let initialPhotoScale = 1, initialPhotoRotation = 0;
 
-        // Real-time Cloud Settings Listener (Firebase)
+        // Real-time Cloud Settings & Templates Listener (Firebase)
         function initCloudSettingsListener() {
-            if (!window.settingsDocRef) {
+            if (!window.settingsDocRef || !window.templatesDocRef) {
                 setTimeout(initCloudSettingsListener, 300);
                 return;
             }
 
+            // Sync Promo Codes
             window.onSnapshot(window.settingsDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    if (data.pricePerSheet !== undefined) pricePerSheet = data.pricePerSheet;
                     if (data.activeCoupons !== undefined && Array.isArray(data.activeCoupons)) {
                         activeCoupons = data.activeCoupons;
                     }
 
                     if (currentMode === 'staff') {
                         renderSingleUseCouponList();
-                        const priceInput = document.getElementById('staffPricePerSheet');
-                        if (priceInput) priceInput.value = pricePerSheet;
                     }
                     calculatePrice();
                 } else {
-                    // Initialize document if not exists
                     window.setDoc(window.settingsDocRef, {
-                        pricePerSheet: pricePerSheet,
                         activeCoupons: activeCoupons
                     }, { merge: true });
                 }
             }, (err) => {
-                console.error("Firebase Sync Error:", err);
+                console.error("Firebase Coupon Sync Error:", err);
+            });
+
+            // Sync Templates
+            window.onSnapshot(window.templatesDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.templates && Array.isArray(data.templates) && data.templates.length > 0) {
+                        templates = data.templates;
+                        preloadAndAutoScanInitialTemplates();
+                    } else {
+                        initPresets();
+                    }
+                } else {
+                    initPresets();
+                }
+            }, (err) => {
+                console.error("Firebase Template Sync Error:", err);
             });
         }
 
@@ -604,6 +609,18 @@
                     await window.setDoc(window.settingsDocRef, dataObj, { merge: true });
                 } catch (err) {
                     console.error("Error updating settings to Cloud:", err);
+                }
+            }
+        }
+
+        async function saveTemplatesToCloud() {
+            if (window.templatesDocRef) {
+                try {
+                    await window.setDoc(window.templatesDocRef, { templates: templates });
+                    alert('บันทึกข้อมูลเทมแพลตทั้งหมดลง Cloud เรียบร้อยแล้ว!');
+                } catch (err) {
+                    console.error("Error saving templates to Cloud:", err);
+                    alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลลง Cloud');
                 }
             }
         }
@@ -620,8 +637,11 @@
             return `https://lh3.googleusercontent.com/d/${fileId}`;
         }
 
-        // Pricing Calculation
+        // Pricing Calculation (Per Template)
         function calculatePrice() {
+            const currentTpl = templates[activeTemplateIndex];
+            const pricePerSheet = (currentTpl && currentTpl.price) ? currentTpl.price : 120;
+            
             const qty = parseInt(document.getElementById('custQuantity').value) || 1;
             const subtotal = pricePerSheet * qty;
             let discountAmount = 0;
@@ -746,17 +766,20 @@
             templates = uniqueDriveLinks.map((link, index) => ({
                 id: `preset_drive_${index + 1}`,
                 name: `กรอบแบบที่ ${index + 1}`,
+                price: 120,
                 bgColor: '#EBF5FF',
                 driveUrl: link,
                 bgImage: getGoogleDriveDirectLink(link),
                 slots: []
             }));
 
+            saveTemplatesToCloud();
             preloadAndAutoScanInitialTemplates();
-            calculatePrice();
         }
 
         function preloadAndAutoScanInitialTemplates() {
+            if (activeTemplateIndex >= templates.length) activeTemplateIndex = 0;
+            
             templates.forEach((tpl, idx) => {
                 if (tpl.bgImage) {
                     const img = new Image();
@@ -764,10 +787,19 @@
                     img.src = tpl.bgImage;
                     img.onload = () => {
                         loadedBgImages[tpl.id] = img;
-                        autoDetectSlotsFromFrameImage(idx, false);
+                        if (!tpl.slots || tpl.slots.length === 0) {
+                            autoDetectSlotsFromFrameImage(idx, false);
+                        } else if (idx === activeTemplateIndex) {
+                            renderStaffView();
+                            renderCustomerView();
+                        }
                     };
                 }
             });
+
+            if (currentMode === 'customer') renderCustomerView();
+            else renderStaffView();
+            calculatePrice();
         }
 
         function autoDetectSlotsFromFrameImage(tplIndex = activeTemplateIndex, shouldAlert = true) {
@@ -888,20 +920,6 @@
             }
         }
 
-        // Staff Price & Coupon Functions
-        async function savePrintPrice() {
-            const price = parseFloat(document.getElementById('staffPricePerSheet').value);
-            if (!price || price <= 0) {
-                alert('กรุณากรอกราคาให้ถูกต้อง');
-                return;
-            }
-            pricePerSheet = price;
-            
-            await updateCloudSettings({ pricePerSheet: pricePerSheet });
-            alert('บันทึกราคาสั่งพิมพ์ลง Cloud สำเร็จ!');
-            calculatePrice();
-        }
-
         // Render Coupon Inputs with Quota Field
         function renderSingleUseCouponList() {
             const container = document.getElementById('staffSingleUseCouponList');
@@ -977,15 +995,15 @@
 
         function renderStaffView() {
             renderStaffTemplateTabs();
-            document.getElementById('staffPricePerSheet').value = pricePerSheet;
             renderSingleUseCouponList();
             
             if (templates.length === 0) return;
             const currentTpl = templates[activeTemplateIndex];
 
             document.getElementById('staffTemplateName').value = currentTpl.name;
+            document.getElementById('staffTemplatePrice').value = currentTpl.price || 120;
             document.getElementById('staffBgDriveUrl').value = currentTpl.driveUrl || '';
-            document.getElementById('slotCountDisplay').innerText = currentTpl.slots.length;
+            document.getElementById('slotCountDisplay').innerText = (currentTpl.slots || []).length;
             document.getElementById('googleSheetUrlInput').value = googleSheetScriptUrl;
 
             const bgLayer = document.getElementById('staffBgLayer');
@@ -1040,6 +1058,7 @@
             const newTpl = {
                 id: 'custom_' + Date.now(),
                 name: `กรอบใหม่ #${templates.length + 1}`,
+                price: 120,
                 bgColor: '#EBF5FF', driveUrl: '', bgImage: '',
                 slots: [
                     { x: 180, y: 250, w: 980, h: 1450, radius: 30, rotation: 0 },
@@ -1058,6 +1077,7 @@
                 templates.splice(activeTemplateIndex, 1);
                 activeTemplateIndex = Math.max(0, activeTemplateIndex - 1);
                 activeStaffSlotIndex = 0;
+                saveTemplatesToCloud();
                 renderStaffView();
             }
         }
@@ -1070,10 +1090,20 @@
             }
         }
 
+        function updateCurrentTemplatePrice() {
+            const val = parseFloat(document.getElementById('staffTemplatePrice').value) || 0;
+            if (templates[activeTemplateIndex]) {
+                templates[activeTemplateIndex].price = val;
+                calculatePrice();
+            }
+        }
+
         function renderStaffSlotTabs() {
             const currentTpl = templates[activeTemplateIndex];
             const container = document.getElementById('slotTabsList');
             container.innerHTML = '';
+
+            if (!currentTpl || !currentTpl.slots) return;
 
             currentTpl.slots.forEach((slot, idx) => {
                 const btn = document.createElement('button');
@@ -1090,6 +1120,8 @@
             const container = document.getElementById('staffOverlayContainer');
             container.innerHTML = '';
             const currentTpl = templates[activeTemplateIndex];
+            if (!currentTpl || !currentTpl.slots) return;
+
             const scaleFactor = 360 / BASE_WIDTH;
 
             currentTpl.slots.forEach((slot, idx) => {
@@ -1139,6 +1171,7 @@
         window.addEventListener('mousemove', (e) => {
             if (!isDraggingSlot && !isResizingSlot) return;
             const currentTpl = templates[activeTemplateIndex];
+            if (!currentTpl || !currentTpl.slots) return;
             const slot = currentTpl.slots[activeStaffSlotIndex];
             if (!slot) return;
 
@@ -1162,6 +1195,7 @@
 
         function updateStaffInputsFromActive() {
             const currentTpl = templates[activeTemplateIndex];
+            if (!currentTpl || !currentTpl.slots) return;
             const slot = currentTpl.slots[activeStaffSlotIndex];
             if (!slot) return;
 
@@ -1176,6 +1210,7 @@
 
         function updateSlotFromInputs() {
             const currentTpl = templates[activeTemplateIndex];
+            if (!currentTpl || !currentTpl.slots) return;
             const slot = currentTpl.slots[activeStaffSlotIndex];
             if (!slot) return;
 
@@ -1191,6 +1226,7 @@
 
         function addNewSlot() {
             const currentTpl = templates[activeTemplateIndex];
+            if (!currentTpl.slots) currentTpl.slots = [];
             currentTpl.slots.push({ x: 400, y: 400, w: 800, h: 800, radius: 20, rotation: 0 });
             activeStaffSlotIndex = currentTpl.slots.length - 1;
             renderStaffView();
@@ -1198,14 +1234,14 @@
 
         function deleteActiveSlot() {
             const currentTpl = templates[activeTemplateIndex];
-            if (currentTpl.slots.length <= 1) return;
+            if (!currentTpl || !currentTpl.slots || currentTpl.slots.length <= 1) return;
             currentTpl.slots.splice(activeStaffSlotIndex, 1);
             activeStaffSlotIndex = Math.max(0, activeStaffSlotIndex - 1);
             renderStaffView();
         }
 
-        function saveStaffTemplate() {
-            alert('บันทึกการแก้ไขรูปแบบกรอบรูปสำเร็จแล้ว!');
+        async function saveStaffTemplate() {
+            await saveTemplatesToCloud();
             switchMode('customer');
         }
 
@@ -1219,6 +1255,7 @@
             renderTemplateGrid();
             updateCustomerAdjustPanelUI();
             drawCustomerMainCanvas();
+            calculatePrice();
         }
 
         function renderTemplateGrid() {
@@ -1242,7 +1279,7 @@
                 pCtx.fillRect(0, 0, 160, 240);
 
                 const scale = 160 / BASE_WIDTH;
-                tpl.slots.forEach(s => {
+                (tpl.slots || []).forEach(s => {
                     pCtx.fillStyle = '#CBD5E1';
                     pCtx.fillRect(s.x * scale, s.y * scale, s.w * scale, s.h * scale);
                 });
@@ -1263,13 +1300,13 @@
                 card.appendChild(prevCanvas);
                 const nameLabel = document.createElement('span');
                 nameLabel.className = 'text-[10px] font-semibold text-slate-700 truncate w-full';
-                nameLabel.innerText = tpl.name;
+                nameLabel.innerText = `${tpl.name} (${tpl.price || 120}฿)`;
                 card.appendChild(nameLabel);
 
                 card.onclick = () => {
                     activeTemplateIndex = idx;
                     activeCustomerSlotIndex = 0;
-                    customerSlotData = templates[idx].slots.map(() => ({ img: null, xOffset: 0, yOffset: 0, scale: 1, rotation: 0 }));
+                    customerSlotData = (templates[idx].slots || []).map(() => ({ img: null, xOffset: 0, yOffset: 0, scale: 1, rotation: 0 }));
                     renderCustomerView();
 
                     const previewContainer = document.getElementById('customerCanvasContainer');
@@ -1489,7 +1526,7 @@
             ctx.fillStyle = tpl.bgColor || '#EBF5FF';
             ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
-            tpl.slots.forEach((slot, idx) => {
+            (tpl.slots || []).forEach((slot, idx) => {
                 const slotState = customerSlotData[idx];
 
                 ctx.save();
@@ -1546,7 +1583,7 @@
                 }
             }
 
-            const currentSlot = tpl.slots[activeCustomerSlotIndex];
+            const currentSlot = (tpl.slots || [])[activeCustomerSlotIndex];
             const currentSlotState = customerSlotData[activeCustomerSlotIndex];
 
             if (currentSlot && currentSlotState && currentSlotState.img) {
@@ -1574,13 +1611,53 @@
             }
         }
 
+        // Fixed Mobile Download Compatibility
         function downloadHighResImage() {
             drawCanvasWithoutGuides();
             const canvas = document.getElementById('mainRenderCanvas');
-            const link = document.createElement('a');
-            link.download = `037Cafe-Studio-${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png', 1.0);
-            link.click();
+            const fileName = `037Cafe-Studio-${Date.now()}.png`;
+
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            if (canvas.toBlob) {
+                canvas.toBlob((blob) => {
+                    if (!blob) return;
+                    const url = URL.createObjectURL(blob);
+                    
+                    if (isMobile) {
+                        const newTab = window.open();
+                        if (newTab) {
+                            newTab.document.write(`<img src="${url}" style="width:100%; height:auto;" alt="Photo Booth"/>`);
+                            newTab.document.title = fileName;
+                        } else {
+                            window.location.href = url;
+                        }
+                    } else {
+                        const link = document.createElement('a');
+                        link.download = fileName;
+                        link.href = url;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+                }, 'image/png', 1.0);
+            } else {
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                if (isMobile) {
+                    const newTab = window.open();
+                    if (newTab) {
+                        newTab.document.write(`<img src="${dataUrl}" style="width:100%; height:auto;" alt="Photo Booth"/>`);
+                    } else {
+                        window.location.href = dataUrl;
+                    }
+                } else {
+                    const link = document.createElement('a');
+                    link.download = fileName;
+                    link.href = dataUrl;
+                    link.click();
+                }
+            }
             drawCustomerMainCanvas();
         }
 
@@ -1595,7 +1672,7 @@
             ctx.fillStyle = tpl.bgColor || '#EBF5FF';
             ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
-            tpl.slots.forEach((slot, idx) => {
+            (tpl.slots || []).forEach((slot, idx) => {
                 const slotState = customerSlotData[idx];
 
                 ctx.save();
@@ -1652,13 +1729,13 @@
                 return;
             }
 
-            // หักสิทธิ์ใช้โค้ด 1 ครั้งเมื่อทำรายการสั่งซื้อสำเร็จ และอัปเดตลง Cloud
             if (appliedCoupon) {
                 appliedCoupon.usedCount = (appliedCoupon.usedCount || 0) + 1;
                 await updateCloudSettings({ activeCoupons: activeCoupons });
             }
 
             const currentTpl = templates[activeTemplateIndex];
+            const pricePerSheet = (currentTpl && currentTpl.price) ? currentTpl.price : 120;
             const orderNo = '037-' + Math.floor(100000 + Math.random() * 900000);
             const subtotal = pricePerSheet * quantity;
             const discount = appliedCoupon ? appliedCoupon.discount : 0;
@@ -1719,7 +1796,6 @@
         }
 
         window.onload = function() {
-            initPresets();
             initCloudSettingsListener();
         };
     </script>
