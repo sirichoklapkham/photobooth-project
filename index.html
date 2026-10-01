@@ -200,6 +200,14 @@
                             </button>
                         </div>
 
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">หมวดหมู่กรอบรูป</label>
+                            <select id="staffTemplateCategory" onchange="updateCurrentTemplateCategory()" class="w-full text-xs px-3 py-1.5 rounded-xl border border-sky-200 bg-white">
+                                <option value="เลือกกรอบใส่รูปส่งปริ้น (PhotoBooth มุมสูง)">1. เลือกกรอบใส่รูปส่งปริ้น (PhotoBooth มุมสูง)</option>
+                                <option value="เลือกกรอบใส่รูปส่งปริ้น (สตูดิโอและกิ๊ฟช็อป)">2. เลือกกรอบใส่รูปส่งปริ้น (สตูดิโอและกิ๊ฟช็อป)</option>
+                            </select>
+                        </div>
+
                         <div class="space-y-1.5">
                             <label class="block text-[11px] font-semibold text-slate-600">
                                 <i class="fa-brands fa-google-drive text-emerald-500 mr-1"></i> Google Drive Link / FILE_ID (ไฟล์ PNG โปร่งใส)
@@ -273,7 +281,7 @@
 
                     <div class="pt-3">
                         <button onclick="saveStaffTemplate()" class="w-full py-2.5 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white font-semibold rounded-2xl shadow-md transition flex items-center justify-center gap-2 text-xs">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกเทมแพลตทั้งหมดลง Cloud
+                            <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกเทมแพลตทั้งหมดลง Cloud และ Google Sheet
                         </button>
                     </div>
                 </div>
@@ -310,6 +318,20 @@
                         <i class="fa-solid fa-border-all text-sky-500"></i>
                         1. เลือกแบบกรอบรูป ( Choose Frame Template )
                     </h2>
+                    
+                    <!-- Category Tabs Filter -->
+                    <div id="categoryTabs" class="flex gap-2 mb-3 border-b border-sky-100 pb-2 overflow-x-auto custom-scrollbar">
+                        <button onclick="selectCategory('ALL')" id="catTab_ALL" class="px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 bg-sky-500 text-white shadow-sm transition">
+                            ทั้งหมด
+                        </button>
+                        <button onclick="selectCategory('เลือกกรอบใส่รูปส่งปริ้น (PhotoBooth มุมสูง)')" id="catTab_CAT1" class="px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 bg-slate-100 text-slate-600 hover:bg-sky-100 transition">
+                            PhotoBooth มุมสูง
+                        </button>
+                        <button onclick="selectCategory('เลือกกรอบใส่รูปส่งปริ้น (สตูดิโอและกิ๊ฟช็อป)')" id="catTab_CAT2" class="px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 bg-slate-100 text-slate-600 hover:bg-sky-100 transition">
+                            สตูดิโอและกิ๊ฟช็อป
+                        </button>
+                    </div>
+
                     <div id="templateGrid" class="grid grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1 custom-scrollbar"></div>
                 </div>
 
@@ -512,7 +534,7 @@
     <script>
         const BASE_WIDTH = 2400;
         const BASE_HEIGHT = 3600;
-        const DEFAULT_GSHEET_URL = 'https://script.google.com/macros/s/AKfycbwmSOkjOJOz1ZV6cFq0FiJNHsHNToDz8XRvwcNS3LvV6C0XrN2mnZuoFvqWCLtDaYJP/exec';
+        const DEFAULT_GSHEET_URL = 'https://script.google.com/macros/s/AKfycbz5_WOR0pPFNxW5fkKWzFLPFCfCkC1VIf5eP_XTGFMuQ02sbdCK9RSm2t4Qjh3A7TXZ/exec';
 
         let currentMode = 'customer';
         let secretHeaderClickCount = 0;
@@ -522,10 +544,11 @@
         let activeTemplateIndex = 0;
         let activeStaffSlotIndex = 0;
         let activeCustomerSlotIndex = 0;
+        let activeCategoryFilter = 'ALL';
 
         let googleSheetScriptUrl = localStorage.getItem('037_gsheet_url') || DEFAULT_GSHEET_URL;
 
-        // Default Coupons Array with customizable limits (Quota)
+        // Default Coupons Array
         const defaultCoupons = [
             { code: 'FREE10', discount: 10, limit: 10, usedCount: 0 },
             { code: 'FREE20', discount: 20, limit: 5, usedCount: 0 },
@@ -540,7 +563,6 @@
         ];
 
         let activeCoupons = defaultCoupons;
-
         let appliedCoupon = null;
         let slipBase64 = null;
 
@@ -557,6 +579,24 @@
         let initialTouchDistance = 0, initialTouchAngle = 0;
         let initialPhotoScale = 1, initialPhotoRotation = 0;
 
+        // ดึงข้อมูลสำรองจาก Google Sheet อัตโนมัติ หาก Firebase ไม่มีข้อมูล
+        async function loadTemplatesFromGoogleSheetBackup() {
+            if (!googleSheetScriptUrl) return false;
+            try {
+                const res = await fetch(googleSheetScriptUrl + '?action=getTemplates');
+                const json = await res.json();
+                if (json && json.status === 'success' && json.templates && json.templates.length > 0) {
+                    templates = json.templates;
+                    saveTemplatesToCloud(); // บันทึกคืนกลับลง Firebase
+                    preloadAndAutoScanInitialTemplates();
+                    return true;
+                }
+            } catch (e) {
+                console.error("Backup Load Failed:", e);
+            }
+            return false;
+        }
+
         // Real-time Cloud Settings & Templates Listener (Firebase)
         function initCloudSettingsListener() {
             if (!window.settingsDocRef || !window.templatesDocRef) {
@@ -571,35 +611,32 @@
                     if (data.activeCoupons !== undefined && Array.isArray(data.activeCoupons)) {
                         activeCoupons = data.activeCoupons;
                     }
-
-                    if (currentMode === 'staff') {
-                        renderSingleUseCouponList();
-                    }
+                    if (currentMode === 'staff') renderSingleUseCouponList();
                     calculatePrice();
                 } else {
-                    window.setDoc(window.settingsDocRef, {
-                        activeCoupons: activeCoupons
-                    }, { merge: true });
+                    window.setDoc(window.settingsDocRef, { activeCoupons: activeCoupons }, { merge: true });
                 }
-            }, (err) => {
-                console.error("Firebase Coupon Sync Error:", err);
-            });
+            }, (err) => { console.error("Firebase Coupon Sync Error:", err); });
 
             // Sync Templates
-            window.onSnapshot(window.templatesDocRef, (docSnap) => {
+            window.onSnapshot(window.templatesDocRef, async (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.templates && Array.isArray(data.templates) && data.templates.length > 0) {
                         templates = data.templates;
                         preloadAndAutoScanInitialTemplates();
                     } else {
-                        initPresets();
+                        const loadedBackup = await loadTemplatesFromGoogleSheetBackup();
+                        if (!loadedBackup) initPresets();
                     }
                 } else {
-                    initPresets();
+                    const loadedBackup = await loadTemplatesFromGoogleSheetBackup();
+                    if (!loadedBackup) initPresets();
                 }
-            }, (err) => {
+            }, async (err) => {
                 console.error("Firebase Template Sync Error:", err);
+                const loadedBackup = await loadTemplatesFromGoogleSheetBackup();
+                if (!loadedBackup) initPresets();
             });
         }
 
@@ -617,7 +654,18 @@
             if (window.templatesDocRef) {
                 try {
                     await window.setDoc(window.templatesDocRef, { templates: templates });
-                    alert('บันทึกข้อมูลเทมแพลตทั้งหมดลง Cloud เรียบร้อยแล้ว!');
+                    
+                    // บันทึกสำรองข้อมูลเทมแพลตไปยัง Google Sheet คอลัมน์ L ในลูปเบื้องหลัง
+                    if (googleSheetScriptUrl) {
+                        fetch(googleSheetScriptUrl, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'saveTemplates', templates: templates })
+                        }).catch(e => console.error("Backup to GSheet error:", e));
+                    }
+
+                    alert('บันทึกข้อมูลเทมแพลตทั้งหมดลง Cloud และ Google Sheet เรียบร้อยแล้ว!');
                 } catch (err) {
                     console.error("Error saving templates to Cloud:", err);
                     alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลลง Cloud');
@@ -637,19 +685,12 @@
             return `https://lh3.googleusercontent.com/d/${fileId}`;
         }
 
-        // Pricing Calculation (Per Template)
         function calculatePrice() {
             const currentTpl = templates[activeTemplateIndex];
             const pricePerSheet = (currentTpl && currentTpl.price) ? currentTpl.price : 120;
-            
             const qty = parseInt(document.getElementById('custQuantity').value) || 1;
             const subtotal = pricePerSheet * qty;
-            let discountAmount = 0;
-
-            if (appliedCoupon) {
-                discountAmount = appliedCoupon.discount;
-            }
-
+            let discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
             const grandTotal = Math.max(0, subtotal - discountAmount);
 
             document.getElementById('summaryUnitPrice').innerText = pricePerSheet;
@@ -668,10 +709,8 @@
 
         function changePrintQuantity(amount) {
             const input = document.getElementById('custQuantity');
-            let val = parseInt(input.value) || 1;
-            val += amount;
-            if (val < 1) val = 1;
-            if (val > 99) val = 99;
+            let val = (parseInt(input.value) || 1) + amount;
+            if (val < 1) val = 1; if (val > 99) val = 99;
             input.value = val;
             calculatePrice();
         }
@@ -681,17 +720,12 @@
             const msgEl = document.getElementById('couponMsg');
 
             if (!input) {
-                appliedCoupon = null;
-                msgEl.innerText = '';
-                calculatePrice();
-                return;
+                appliedCoupon = null; msgEl.innerText = ''; calculatePrice(); return;
             }
 
             const found = activeCoupons.find(c => c.code && c.code.toUpperCase() === input);
             if (found) {
-                const used = found.usedCount || 0;
-                const limit = found.limit || 1;
-
+                const used = found.usedCount || 0, limit = found.limit || 1;
                 if (used >= limit) {
                     appliedCoupon = null;
                     msgEl.className = 'text-[11px] mt-1 font-medium text-rose-500';
@@ -714,9 +748,7 @@
             alert('คัดลอกเลขบัญชี 665-2-16297-0 เรียบร้อยแล้ว');
         }
 
-        function triggerSlipUpload() {
-            document.getElementById('slipFileInput').click();
-        }
+        function triggerSlipUpload() { document.getElementById('slipFileInput').click(); }
 
         function handleSlipUpload(event) {
             const file = event.target.files[0];
@@ -732,8 +764,9 @@
             }
         }
 
+        // เริ่มต้นจัดหมวดหมู่เทมแพลตตามลิงก์ที่ระบุ
         function initPresets() {
-            const driveLinks = [
+            const cat1Links = [
                 "https://drive.google.com/file/d/1dS14Mdl45ghAuf25ObMmzphGv3RJsYa3/view?usp=sharing",
                 "https://drive.google.com/file/d/1vBpNPCwlecSVTPlAtLAQp2O7griBRX3-/view?usp=sharing",
                 "https://drive.google.com/file/d/1Uw5O6UaDrw_jGDUwEmI0f6JMOhkcLdre/view?usp=sharing",
@@ -761,17 +794,42 @@
                 "https://drive.google.com/file/d/1JZfqZNHfWKj6tbfImntr9kbVTZt6F7iv/view?usp=sharing"
             ];
 
-            const uniqueDriveLinks = [...new Set(driveLinks)];
+            const cat2Links = [
+                "https://drive.google.com/file/d/1hIKP-AlapVoczzGil-1u5xS7nG0cWwGz/view?usp=sharing",
+                "https://drive.google.com/file/d/1PDEPFzhIQ8xOMFGSoI9iPf1R6_ggirYB/view?usp=sharing",
+                "https://drive.google.com/file/d/1Jrs_ao-JMy7ZkFGHeh-X9cFM511ZkoTj/view?usp=sharing",
+                "https://drive.google.com/file/d/1hTcZVRfARrQ4dOEd7Oobn35eLCSnEyzs/view?usp=sharing"
+            ];
 
-            templates = uniqueDriveLinks.map((link, index) => ({
-                id: `preset_drive_${index + 1}`,
-                name: `กรอบแบบที่ ${index + 1}`,
-                price: 120,
-                bgColor: '#EBF5FF',
-                driveUrl: link,
-                bgImage: getGoogleDriveDirectLink(link),
-                slots: []
-            }));
+            templates = [];
+
+            // หมวดหมู่ที่ 1
+            cat1Links.forEach((link, index) => {
+                templates.push({
+                    id: `cat1_${index + 1}`,
+                    name: `มุมสูง แบบที่ ${index + 1}`,
+                    category: 'เลือกกรอบใส่รูปส่งปริ้น (PhotoBooth มุมสูง)',
+                    price: 120,
+                    bgColor: '#EBF5FF',
+                    driveUrl: link,
+                    bgImage: getGoogleDriveDirectLink(link),
+                    slots: []
+                });
+            });
+
+            // หมวดหมู่ที่ 2
+            cat2Links.forEach((link, index) => {
+                templates.push({
+                    id: `cat2_${index + 1}`,
+                    name: `สตูดิโอ แบบที่ ${index + 1}`,
+                    category: 'เลือกกรอบใส่รูปส่งปริ้น (สตูดิโอและกิ๊ฟช็อป)',
+                    price: 120,
+                    bgColor: '#EBF5FF',
+                    driveUrl: link,
+                    bgImage: getGoogleDriveDirectLink(link),
+                    slots: []
+                });
+            });
 
             saveTemplatesToCloud();
             preloadAndAutoScanInitialTemplates();
@@ -920,15 +978,13 @@
             }
         }
 
-        // Render Coupon Inputs with Quota Field
         function renderSingleUseCouponList() {
             const container = document.getElementById('staffSingleUseCouponList');
             container.innerHTML = '';
 
             for (let i = 0; i < 10; i++) {
                 const itemData = activeCoupons[i] || { code: '', discount: 0, limit: 1, usedCount: 0 };
-                const used = itemData.usedCount || 0;
-                const limit = itemData.limit || 1;
+                const used = itemData.usedCount || 0, limit = itemData.limit || 1;
                 const isFullyUsed = used >= limit && limit > 0;
 
                 const row = document.createElement('div');
@@ -952,7 +1008,6 @@
             }
         }
 
-        // Save Coupons Setup with Limit/Quota
         async function saveSingleUseCoupons() {
             for (let i = 0; i < 10; i++) {
                 const codeVal = document.getElementById(`couponCode_${i}`).value.trim().toUpperCase();
@@ -973,14 +1028,10 @@
             alert('บันทึกการตั้งค่าโค้ดส่วนลดและจำนวนสิทธิ์ลง Cloud เรียบร้อยแล้ว!');
         }
 
-        // Reset ONLY Coupons that ran out of quota
         async function resetUsedCouponsOnly() {
             let resetCount = 0;
             activeCoupons.forEach(c => {
-                if (c.usedCount > 0) {
-                    c.usedCount = 0;
-                    resetCount++;
-                }
+                if (c.usedCount > 0) { c.usedCount = 0; resetCount++; }
             });
 
             if (resetCount === 0) {
@@ -1002,6 +1053,7 @@
 
             document.getElementById('staffTemplateName').value = currentTpl.name;
             document.getElementById('staffTemplatePrice').value = currentTpl.price || 120;
+            document.getElementById('staffTemplateCategory').value = currentTpl.category || 'เลือกกรอบใส่รูปส่งปริ้น (PhotoBooth มุมสูง)';
             document.getElementById('staffBgDriveUrl').value = currentTpl.driveUrl || '';
             document.getElementById('slotCountDisplay').innerText = (currentTpl.slots || []).length;
             document.getElementById('googleSheetUrlInput').value = googleSheetScriptUrl;
@@ -1058,6 +1110,7 @@
             const newTpl = {
                 id: 'custom_' + Date.now(),
                 name: `กรอบใหม่ #${templates.length + 1}`,
+                category: 'เลือกกรอบใส่รูปส่งปริ้น (PhotoBooth มุมสูง)',
                 price: 120,
                 bgColor: '#EBF5FF', driveUrl: '', bgImage: '',
                 slots: [
@@ -1095,6 +1148,13 @@
             if (templates[activeTemplateIndex]) {
                 templates[activeTemplateIndex].price = val;
                 calculatePrice();
+            }
+        }
+
+        function updateCurrentTemplateCategory() {
+            const val = document.getElementById('staffTemplateCategory').value;
+            if (templates[activeTemplateIndex]) {
+                templates[activeTemplateIndex].category = val;
             }
         }
 
@@ -1251,6 +1311,20 @@
             localStorage.setItem('037_gsheet_url', googleSheetScriptUrl);
         }
 
+        function selectCategory(catName) {
+            activeCategoryFilter = catName;
+            ['ALL', 'CAT1', 'CAT2'].forEach(id => {
+                const el = document.getElementById(`catTab_${id}`);
+                if (el) el.className = "px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 bg-slate-100 text-slate-600 hover:bg-sky-100 transition";
+            });
+
+            if (catName === 'ALL') document.getElementById('catTab_ALL').className = "px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 bg-sky-500 text-white shadow-sm transition";
+            else if (catName === 'เลือกกรอบใส่รูปส่งปริ้น (PhotoBooth มุมสูง)') document.getElementById('catTab_CAT1').className = "px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 bg-sky-500 text-white shadow-sm transition";
+            else if (catName === 'เลือกกรอบใส่รูปส่งปริ้น (สตูดิโอและกิ๊ฟช็อป)') document.getElementById('catTab_CAT2').className = "px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 bg-sky-500 text-white shadow-sm transition";
+
+            renderTemplateGrid();
+        }
+
         function renderCustomerView() {
             renderTemplateGrid();
             updateCustomerAdjustPanelUI();
@@ -1262,7 +1336,13 @@
             const grid = document.getElementById('templateGrid');
             grid.innerHTML = '';
 
-            templates.forEach((tpl, idx) => {
+            const filteredTemplates = templates.filter(tpl => {
+                if (activeCategoryFilter === 'ALL') return true;
+                return (tpl.category || 'เลือกกรอบใส่รูปส่งปริ้น (PhotoBooth มุมสูง)') === activeCategoryFilter;
+            });
+
+            filteredTemplates.forEach((tpl) => {
+                const idx = templates.findIndex(t => t.id === tpl.id);
                 const card = document.createElement('div');
                 card.className = `p-2 rounded-2xl border cursor-pointer transition text-center flex flex-col items-center justify-between ${
                     idx === activeTemplateIndex 
@@ -1611,34 +1691,26 @@
             }
         }
 
-        // Fixed Mobile Download Compatibility
         function downloadHighResImage() {
             drawCanvasWithoutGuides();
             const canvas = document.getElementById('mainRenderCanvas');
             const fileName = `037Cafe-Studio-${Date.now()}.png`;
-
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
             if (canvas.toBlob) {
                 canvas.toBlob((blob) => {
                     if (!blob) return;
                     const url = URL.createObjectURL(blob);
-                    
                     if (isMobile) {
                         const newTab = window.open();
                         if (newTab) {
                             newTab.document.write(`<img src="${url}" style="width:100%; height:auto;" alt="Photo Booth"/>`);
                             newTab.document.title = fileName;
-                        } else {
-                            window.location.href = url;
-                        }
+                        } else { window.location.href = url; }
                     } else {
                         const link = document.createElement('a');
-                        link.download = fileName;
-                        link.href = url;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
+                        link.download = fileName; link.href = url;
+                        document.body.appendChild(link); link.click(); document.body.removeChild(link);
                     }
                     setTimeout(() => URL.revokeObjectURL(url), 10000);
                 }, 'image/png', 1.0);
@@ -1646,16 +1718,11 @@
                 const dataUrl = canvas.toDataURL('image/png', 1.0);
                 if (isMobile) {
                     const newTab = window.open();
-                    if (newTab) {
-                        newTab.document.write(`<img src="${dataUrl}" style="width:100%; height:auto;" alt="Photo Booth"/>`);
-                    } else {
-                        window.location.href = dataUrl;
-                    }
+                    if (newTab) { newTab.document.write(`<img src="${dataUrl}" style="width:100%; height:auto;" alt="Photo Booth"/>`); }
+                    else { window.location.href = dataUrl; }
                 } else {
                     const link = document.createElement('a');
-                    link.download = fileName;
-                    link.href = dataUrl;
-                    link.click();
+                    link.download = fileName; link.href = dataUrl; link.click();
                 }
             }
             drawCustomerMainCanvas();
