@@ -126,13 +126,9 @@
     <!-- Main Content Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- ==================================================================== -->
         <!-- STAFF MODE SECTION -->
-        <!-- ==================================================================== -->
         <section id="staffModeSection" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
             <div class="lg:col-span-5 space-y-4">
-                
                 <!-- Staff Coupon Management Panel -->
                 <div class="bg-white rounded-3xl p-5 border border-amber-200 bg-amber-50/20 pastel-shadow space-y-4">
                     <div class="flex items-center justify-between pb-2 border-b border-amber-200">
@@ -142,7 +138,6 @@
                         </h2>
                     </div>
 
-                    <!-- Coupons Management with Quota -->
                     <div class="space-y-2 pt-2">
                         <div class="flex justify-between items-center">
                             <label class="block text-[11px] font-semibold text-slate-600">จัดการโค้ดส่วนลดและจำนวนสิทธิ์ (Quota)</label>
@@ -151,9 +146,7 @@
                             </button>
                         </div>
 
-                        <div class="mt-2 space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-1" id="staffSingleUseCouponList">
-                            <!-- JS จะเรนเดอร์รายการโค้ดที่นี่ -->
-                        </div>
+                        <div class="mt-2 space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-1" id="staffSingleUseCouponList"></div>
 
                         <button onclick="saveSingleUseCoupons()" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-semibold shadow-sm transition mt-2 flex items-center justify-center gap-1">
                             <i class="fa-solid fa-floppy-disk"></i> บันทึกการตั้งค่าโค้ดและจำนวนสิทธิ์
@@ -226,7 +219,6 @@
                         </div>
                     </div>
 
-                    <!-- Photo Slot Selector & Actions -->
                     <div class="flex items-center justify-between bg-sky-50 p-2.5 rounded-2xl mb-3">
                         <span class="text-xs font-bold text-slate-700">ช่องรูปที่ตรวจพบ (<span id="slotCountDisplay">0</span>)</span>
                         <div class="flex gap-2">
@@ -241,7 +233,6 @@
 
                     <div id="slotTabsList" class="flex gap-1.5 overflow-x-auto pb-2 custom-scrollbar mb-3"></div>
 
-                    <!-- Coordinates Control Panel -->
                     <div id="slotDetailControls" class="space-y-2.5 bg-slate-50 p-3.5 rounded-2xl border border-sky-100 text-xs">
                         <div class="flex items-center justify-between font-bold text-slate-700 text-xs mb-1">
                             <span>ปรับพิกัดรายละเอียด (PX)</span>
@@ -305,13 +296,9 @@
             </div>
         </section>
 
-        <!-- ==================================================================== -->
         <!-- CUSTOMER MODE SECTION -->
-        <!-- ==================================================================== -->
         <section id="customerModeSection" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
             <div class="lg:col-span-5 space-y-4">
-
                 <!-- 1. Select Template Gallery -->
                 <div class="bg-white rounded-3xl p-5 border border-sky-100 pastel-shadow">
                     <h2 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
@@ -319,7 +306,6 @@
 เลือกแบบกรอบรูป ( Choose Frame Template )
                     </h2>
                     
-                    <!-- Category Tabs Filter -->
                     <div id="categoryTabs" class="flex gap-2 mb-3 border-b border-sky-100 pb-2 overflow-x-auto custom-scrollbar">
                         <button onclick="selectCategory('ALL')" id="catTab_ALL" class="px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 bg-sky-500 text-white shadow-sm transition">
                             ทั้งหมด
@@ -374,12 +360,10 @@
                         </div>
                     </div>
                 </div>
-
             </div>
 
             <!-- Right Area: Preview Canvas & Customer Form Below -->
             <div class="lg:col-span-7 space-y-4 flex flex-col items-center">
-                
                 <!-- Main Live Preview Canvas Container -->
                 <div class="bg-white p-4 rounded-3xl border border-sky-100 pastel-shadow w-full flex flex-col items-center">
                     <div class="flex items-center justify-between w-full mb-3 px-2">
@@ -413,7 +397,6 @@
                         </div>
                     </div>
 
-                    <!-- จำนวนใบ + โค้ดส่วนลด -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
                         <div>
                             <label class="block font-medium text-slate-600 mb-1">จำนวนที่ต้องการสั่งพิมพ์ (ใบ) <span class="text-rose-500">*</span></label>
@@ -436,7 +419,6 @@
                         </div>
                     </div>
 
-                    <!-- บล็อกแสดงข้อมูลบัญชีธนาคาร และ ชำระเงิน -->
                     <div class="bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-2xl border border-sky-100 space-y-3">
                         <div class="flex justify-between items-center border-b border-sky-200/60 pb-2">
                             <span class="text-xs font-semibold text-slate-600">บัญชีสำหรับการโอนเงิน:</span>
@@ -453,7 +435,6 @@
                             </button>
                         </div>
 
-                        <!-- สรุปยอดเงิน -->
                         <div class="pt-2 border-t border-sky-200/60 space-y-1 text-xs">
                             <div class="flex justify-between text-slate-600">
                                 <span>ราคาปกติ (<span id="summaryUnitPrice">120</span> บาท x <span id="summaryQty">1</span> ใบ):</span>
@@ -469,7 +450,6 @@
                             </div>
                         </div>
 
-                        <!-- แนบสลิปการโอนเงิน -->
                         <div class="pt-2">
                             <label class="block font-semibold text-slate-700 mb-1 text-xs">
                                 แนบสลิปการโอนเงิน <span class="text-rose-500">*</span>
@@ -490,14 +470,12 @@
                         <button onclick="downloadHighResImage()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl border border-slate-200 transition flex items-center justify-center gap-1.5 active:scale-98 touch-manipulation">
                             <i class="fa-solid fa-download"></i> ดาวน์โหลดรูป
                         </button>
-                        <button onclick="submitCustomerOrder()" class="flex-1 py-3 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white text-xs font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-1.5 active:scale-98 touch-manipulation">
+                        <button id="btnSubmitOrder" onclick="submitCustomerOrder()" class="flex-1 py-3 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white text-xs font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-1.5 active:scale-98 touch-manipulation">
                             <i class="fa-solid fa-paper-plane"></i> ยืนยันชำระเงินและสั่งพิมพ์
                         </button>
                     </div>
                 </div>
-
             </div>
-
         </section>
 
     </main>
@@ -522,7 +500,7 @@
                 <div class="flex justify-between"><span class="text-slate-500">รหัสใบสั่งซื้อ:</span><span id="recOrderNo" class="font-mono text-sky-600 font-bold"></span></div>
             </div>
 
-            <div id="googleSheetSyncStatus" class="text-[11px] text-slate-400 flex items-center justify-center gap-1.5"></div>
+            <div id="googleSheetSyncStatus" class="text-[11px] text-slate-500 flex items-center justify-center gap-1.5 font-medium"></div>
 
             <button onclick="closeReceiptModal()" class="w-full py-3 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-xl text-xs transition active:scale-98 touch-manipulation">
                 ปิดหน้าต่างนี้
@@ -548,7 +526,6 @@
 
         let googleSheetScriptUrl = localStorage.getItem('037_gsheet_url') || DEFAULT_GSHEET_URL;
 
-        // Default Coupons Array
         const defaultCoupons = [
             { code: 'FREE10', discount: 10, limit: 10, usedCount: 0 },
             { code: 'FREE20', discount: 20, limit: 5, usedCount: 0 },
@@ -579,7 +556,6 @@
         let initialTouchDistance = 0, initialTouchAngle = 0;
         let initialPhotoScale = 1, initialPhotoRotation = 0;
 
-        // ดึงข้อมูลสำรองจาก Google Sheet อัตโนมัติ หาก Firebase ไม่มีข้อมูล
         async function loadTemplatesFromGoogleSheetBackup() {
             if (!googleSheetScriptUrl) return false;
             try {
@@ -587,7 +563,7 @@
                 const json = await res.json();
                 if (json && json.status === 'success' && json.templates && json.templates.length > 0) {
                     templates = json.templates;
-                    saveTemplatesToCloud(); // บันทึกคืนกลับลง Firebase
+                    saveTemplatesToCloud();
                     preloadAndAutoScanInitialTemplates();
                     return true;
                 }
@@ -597,14 +573,12 @@
             return false;
         }
 
-        // Real-time Cloud Settings & Templates Listener (Firebase)
         function initCloudSettingsListener() {
             if (!window.settingsDocRef || !window.templatesDocRef) {
                 setTimeout(initCloudSettingsListener, 300);
                 return;
             }
 
-            // Sync Promo Codes
             window.onSnapshot(window.settingsDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -618,7 +592,6 @@
                 }
             }, (err) => { console.error("Firebase Coupon Sync Error:", err); });
 
-            // Sync Templates
             window.onSnapshot(window.templatesDocRef, async (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -654,8 +627,6 @@
             if (window.templatesDocRef) {
                 try {
                     await window.setDoc(window.templatesDocRef, { templates: templates });
-                    
-                    // บันทึกสำรองข้อมูลเทมแพลตไปยัง Google Sheet
                     if (googleSheetScriptUrl) {
                         fetch(googleSheetScriptUrl, {
                             method: 'POST',
@@ -663,7 +634,6 @@
                             body: JSON.stringify({ action: 'saveTemplates', templates: templates })
                         }).catch(e => console.error("Backup to GSheet error:", e));
                     }
-
                     alert('บันทึกข้อมูลเทมแพลตทั้งหมดลง Cloud และ Google Sheet เรียบร้อยแล้ว!');
                 } catch (err) {
                     console.error("Error saving templates to Cloud:", err);
@@ -749,21 +719,36 @@
 
         function triggerSlipUpload() { document.getElementById('slipFileInput').click(); }
 
+        // ย่อขนาดสลิปเพื่อป้องกันไฟล์ใหญ่เกินไป
         function handleSlipUpload(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    slipBase64 = e.target.result;
-                    document.getElementById('slipPreviewImg').src = slipBase64;
-                    document.getElementById('slipPreviewWrap').classList.remove('hidden');
-                    document.getElementById('slipUploadPlaceholder').classList.add('hidden');
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const maxDim = 1000;
+                        let w = img.width, h = img.height;
+                        if (w > maxDim || h > maxDim) {
+                            if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                            else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                        }
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        slipBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        
+                        document.getElementById('slipPreviewImg').src = slipBase64;
+                        document.getElementById('slipPreviewWrap').classList.remove('hidden');
+                        document.getElementById('slipUploadPlaceholder').classList.add('hidden');
+                    };
+                    img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        // เริ่มต้นจัดหมวดหมู่เทมแพลตตามลิงก์ที่ระบุ
         function initPresets() {
             const cat1Links = [
                 "https://drive.google.com/file/d/1dS14Mdl45ghAuf25ObMmzphGv3RJsYa3/view?usp=sharing",
@@ -802,7 +787,6 @@
 
             templates = [];
 
-            // หมวดหมู่ที่ 1
             cat1Links.forEach((link, index) => {
                 templates.push({
                     id: `cat1_${index + 1}`,
@@ -816,7 +800,6 @@
                 });
             });
 
-            // หมวดหมู่ที่ 2
             cat2Links.forEach((link, index) => {
                 templates.push({
                     id: `cat2_${index + 1}`,
@@ -1780,6 +1763,22 @@
             }
         }
 
+        // ย่อภาพก่อนส่งขึ้น Google Drive เพื่อลดไฟล์ค้าง
+        function getOptimizedPhotoDataUrl() {
+            drawCanvasWithoutGuides();
+            const srcCanvas = document.getElementById('mainRenderCanvas');
+            
+            const optCanvas = document.createElement('canvas');
+            optCanvas.width = 1200;
+            optCanvas.height = 1800;
+            const optCtx = optCanvas.getContext('2d');
+            optCtx.drawImage(srcCanvas, 0, 0, 1200, 1800);
+            
+            const dataUrl = optCanvas.toDataURL('image/jpeg', 0.6);
+            drawCustomerMainCanvas();
+            return dataUrl;
+        }
+
         async function submitCustomerOrder() {
             const name = document.getElementById('custNickname').value.trim();
             const phone = document.getElementById('custPhone').value.trim();
@@ -1795,6 +1794,10 @@
                 return;
             }
 
+            const btnSubmit = document.getElementById('btnSubmitOrder');
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+
             if (appliedCoupon) {
                 appliedCoupon.usedCount = (appliedCoupon.usedCount || 0) + 1;
                 await updateCloudSettings({ activeCoupons: activeCoupons });
@@ -1807,6 +1810,7 @@
             const discount = appliedCoupon ? appliedCoupon.discount : 0;
             const grandTotal = Math.max(0, subtotal - discount);
 
+            // แสดง Pop-up ทันที ไม่ต้องรออัปโหลด
             document.getElementById('recName').innerText = name;
             document.getElementById('recPhone').innerText = phone;
             document.getElementById('recTemplate').innerText = currentTpl.name;
@@ -1815,14 +1819,12 @@
             document.getElementById('recOrderNo').innerText = orderNo;
 
             const syncStatusEl = document.getElementById('googleSheetSyncStatus');
+            syncStatusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-sky-500 mr-1"></i> กำลังส่งข้อมูล ชำระเงิน และรูปภาพในเบื้องหลัง...`;
+            document.getElementById('receiptModal').classList.remove('hidden');
 
+            // อัปโหลดไฟล์ในเบื้องหลัง (Background Async Task)
             if (googleSheetScriptUrl) {
-                syncStatusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-sky-500"></i> กำลังส่งข้อมูล ชำระเงิน และรูปภาพไปยัง Google Sheet...`;
-                
-                drawCanvasWithoutGuides();
-                const canvas = document.getElementById('mainRenderCanvas');
-                const photoDataUrl = canvas.toDataURL('image/jpeg', 0.6);
-                drawCustomerMainCanvas();
+                const photoDataUrl = getOptimizedPhotoDataUrl();
 
                 const payload = {
                     action: 'submitOrder',
@@ -1841,26 +1843,31 @@
                     slipImage: slipBase64
                 };
 
-                try {
-                    const res = await fetch(googleSheetScriptUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payload)
-                    });
-                    const json = await res.json();
+                fetch(googleSheetScriptUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(json => {
                     if (json.status === 'success') {
-                        syncStatusEl.innerHTML = `<i class="fa-solid fa-check text-emerald-500"></i> บันทึกข้อมูล ชำระเงิน และสลิปโอนเงินลง Google Sheet เรียบร้อยแล้ว`;
+                        syncStatusEl.innerHTML = `<i class="fa-solid fa-check text-emerald-500 mr-1"></i> บันทึกข้อมูลและรูปภาพลง Google Sheet เรียบร้อยแล้ว`;
                     } else {
-                        syncStatusEl.innerHTML = `<i class="fa-solid fa-circle-exclamation text-amber-500"></i> ไม่สามารถส่งเข้า Google Sheet ได้ (${json.message})`;
+                        syncStatusEl.innerHTML = `<i class="fa-solid fa-circle-exclamation text-amber-500 mr-1"></i> ส่งเข้า Google Sheet ขัดข้อง (${json.message})`;
                     }
-                } catch (err) {
-                    syncStatusEl.innerHTML = `<i class="fa-solid fa-check text-emerald-500"></i> บันทึกข้อมูลและส่งคำสั่งซื้อเรียบร้อยแล้ว`;
-                }
+                })
+                .catch(err => {
+                    syncStatusEl.innerHTML = `<i class="fa-solid fa-check text-emerald-500 mr-1"></i> บันทึกข้อมูลและส่งคำสั่งซื้อเรียบร้อยแล้ว`;
+                })
+                .finally(() => {
+                    btnSubmit.disabled = false;
+                    btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+                });
             } else {
-                syncStatusEl.innerHTML = `<i class="fa-solid fa-info-circle text-slate-400"></i> (ยังไม่ได้เชื่อมต่อ Google Sheet URL ในระบบ Staff)`;
+                syncStatusEl.innerHTML = `<i class="fa-solid fa-info-circle text-slate-400 mr-1"></i> (ยังไม่ได้เชื่อมต่อ Google Sheet URL)`;
+                btnSubmit.disabled = false;
+                btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
             }
-
-            document.getElementById('receiptModal').classList.remove('hidden');
         }
 
         function closeReceiptModal() {
